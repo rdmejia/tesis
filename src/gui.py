@@ -5,12 +5,18 @@ VERSION = "1.0.0"
 import sys
 import random
 import helptext
+from time import sleep
+from threading import Timer
+from mbientlab.metawear import MetaWear, libmetawear, parse_value
+from mbientlab.metawear.cbindings import *
+from mbientlab.warble import * 
+
 if sys.version_info[0] < 3:
     import Tkinter as Tk
     import ttk
 else:
     import tkinter as Tk
-    from tkinter import ttk
+    from tkinter import ttk, tkMessageBox
 
 
 class Resizable():
@@ -274,14 +280,14 @@ class ScoreBars:
         self.bars = []
         self.scores = []
         self.labels = (
-            'Finish',
-            'Finesse',
-            'Straightness',
-            'Tip Steer',
-            'Follow Through',
-            'Jab',
-            'Backstroke Pause',
-            'Shot Interval')
+            'Finalizacion',
+            'Sutileza',
+            'Rectitud',
+            'Direccion de la punta',
+            'Seguimiento del taco',
+            'Golpe',
+            'Pausa atras',
+            'Intervalo de tiro')
         self.scale = (3.0, 10.0, 10.0, 10.0, 10.0, 10.0, 1.0, 60.0)
         self.score_format = (
             "%0.2fs",
@@ -319,7 +325,7 @@ class ScoreBars:
             self.canvas,
             700,
             75,
-            text="Straightness",
+            text="Rectitud",
             font=(
                 "Purisa",
                 14))
@@ -397,6 +403,16 @@ class OptionList_Command_MacAddr:
         self.parent.macaddr = value
         self.parent.dcb.macaddr_filter = value
 
+class MetaWearState:
+    def __init__(self, device):
+        self.device = device
+        self.samples = 0
+        self.callback = FnVoid_VoidP_DataP(self.data_handler)
+        self.file = open('metawear.txt', 'w+')
+    
+    def data_handler(self, ctx, data):
+        self.file.write("%s -> %s\n" % (self.device.address, parse_value(data)))
+        self.samples+= 1
 
 class GUI:
 
@@ -409,57 +425,53 @@ class GUI:
         self.packet_count = dcb.packet_count
         self.master = master
         master.after(500, self.timer)  # register timer
-        master.title("DigiCue Blue BLED112 GUI - Version %s" % VERSION)
+        master.title("CDAG - ASOBIGUA - Version %s" % VERSION)
 
         self.tabs = ttk.Notebook(master)
         self.tab1 = Tk.Frame(self.tabs, padx=10, pady=10)
         self.tab3 = Tk.Frame(self.tabs, padx=10, pady=10)
-        self.tab5 = Tk.Frame(self.tabs, padx=10, pady=10)
-        self.tabs.add(self.tab1, text='Shots')
-        self.tabs.add(self.tab3, text='Configure')
-        self.tabs.add(self.tab5, text='Help')
+        self.tabs.add(self.tab1, text='Tiros')
+        self.tabs.add(self.tab3, text='Configurar')
         self.tabs.pack(fill=Tk.BOTH, expand=Tk.YES)
-
-        # Help tab
-        message = helptext.help
-        frame = Tk.Frame(self.tab5)
-        text = Tk.Text(frame, height=30, width=100, wrap=Tk.WORD)
-        text.insert(Tk.END, message)
-        scroll = Tk.Scrollbar(frame)
-        text.configure(yscrollcommand=scroll.set)
-        text.pack(side=Tk.LEFT)
-        scroll.pack(side=Tk.RIGHT, fill=Tk.Y)
-        frame.pack(side=Tk.TOP)
-        text.config(state=Tk.DISABLED)
 
         # Mac addr select
         frame = Tk.Frame(self.tab3)
         frame.pack(fill=Tk.X)
         self.macaddr = None
+        self.metawear = None
         self.macaddrs_list = []
         self.macaddr_commands = []
-        lbl = Tk.Label(frame, text="DigiCue Blue MAC Address", width=25)
+        lbl = Tk.Label(frame, text="Direccion MAC del DigiCue BLue", width=25)
         lbl.pack(side=Tk.LEFT)
         self.macaddrs = Tk.StringVar(frame)
-        self.macaddrs.set("<Auto Detect>")
+        self.macaddrs.set("<Autodetectar DigiCue>")
         self.macaddrs_combo = Tk.OptionMenu(
-            frame, self.macaddrs, "<Auto Detect>")
+            frame, self.macaddrs, "<Autodetectar DigiCue>")
         self.macaddrs_combo.pack(side=Tk.LEFT)
 
-        # Configuration selection
+        # MetaWear selection
         frame = Tk.Frame(self.tab3)
         frame.pack(fill=Tk.X)
-        label = Tk.Label(frame, text="Configure")
-        label.pack(side=Tk.LEFT)
+        label = Tk.Label(frame, text="MetaWear")
+        label.pack()
+
+        self.seen_metawears = []
+        self.metawear_listbox = Tk.Listbox(frame, selectmode=Tk.MULTIPLE)
+        self.metawear_listbox.pack()
+
+        self.btn_connect_metawear = Tk.Button(frame, text="Conectar MetaWears")
+        self.btn_connect_metawear.config(command = self.connect_to_metawears_click)
+        self.btn_connect_metawear.pack()
 
         self.options_configig = {}
         fbox = Tk.Frame(self.tab3, relief=Tk.GROOVE, bd=2)
         fbox.pack(fill=Tk.X)
+
         for label, modes in dcb.config_options:
             frame = Tk.Frame(fbox)
             frame.pack(fill=Tk.X)
             lbl = Tk.Label(frame, text=label, width=25)
-            lbl.pack(side=Tk.LEFT)
+            # lbl.pack(side=Tk.LEFT)
             v = Tk.StringVar()
             b = Tk.Radiobutton(
                 frame,
@@ -469,7 +481,7 @@ class GUI:
                 indicatoron=0,
                 width=10,
                 command=self.check_setting_config)
-            b.pack(side=Tk.LEFT)
+            # b.pack(side=Tk.LEFT)
             for text, mode in modes:
                 if text <> "Off":
                     b = Tk.Radiobutton(
@@ -480,19 +492,103 @@ class GUI:
                         indicatoron=0,
                         width=10,
                         command=self.check_setting_config)
-                    b.pack(side=Tk.LEFT)
+                    # b.pack(side=Tk.LEFT)
             self.options_configig[label] = v
+        
         frame = Tk.Frame(fbox, pady=10)
         frame.pack(fill=Tk.X)
         lbl = Tk.Label(frame, text="", width=25)
         lbl.pack(side=Tk.LEFT)
         self.sync_label = Tk.StringVar(frame)
-        self.sync_label.set("Press button on DigiCue Blue once to detect")
+        self.sync_label.set("Presionar el boton en el DigiCue exactamente una vez para detectar")
         lbl = Tk.Label(frame, textvariable=self.sync_label)
         lbl.pack(side=Tk.LEFT)
 
+        self.mw_devices = []
+        self.initialize_metawear()
+
         # Shots tab
         self.scorebars = ScoreBars(self.tab1, dcb)
+        self.btn_start_shot = Tk.Button(self.tab1, text = 'Iniciar tiro')
+        self.btn_start_shot.config(command = self.btn_start_shot_click)
+        self.btn_start_shot.pack(side = Tk.RIGHT)
+
+    def btn_start_shot_click(self):
+        self.mw_states = []
+        for device in self.mw_devices:
+            # try:
+            #     device.connect()
+            # except:
+            #     print 'connection to %s failed (the device might be already connected)' % device.address
+            self.mw_states.append(MetaWearState(device))
+
+        for s in self.mw_states:
+            libmetawear.mbl_mw_settings_set_connection_parameters(s.device.board, 7.5, 7.5, 0, 6000)
+            sleep(1.5)
+
+            libmetawear.mbl_mw_acc_set_odr(s.device.board, 100.0)
+            libmetawear.mbl_mw_acc_set_range(s.device.board, 16.0)
+            libmetawear.mbl_mw_acc_write_acceleration_config(s.device.board)
+
+            signal = libmetawear.mbl_mw_acc_get_acceleration_data_signal(s.device.board)
+            libmetawear.mbl_mw_datasignal_subscribe(signal, None, s.callback)
+
+            libmetawear.mbl_mw_acc_enable_acceleration_sampling(s.device.board)
+            libmetawear.mbl_mw_acc_start(s.device.board)
+        
+        t = Timer(15, self.time_elapsed)
+        t.start()
+        print 'shot has started'
+        return
+    
+    def time_elapsed(self):
+        print 'shot has finished'
+        for s in self.mw_states:
+            libmetawear.mbl_mw_acc_stop(s.device.board)
+            libmetawear.mbl_mw_acc_disable_acceleration_sampling(s.device.board)
+
+            signal = libmetawear.mbl_mw_acc_get_acceleration_data_signal(s.device.board)
+            libmetawear.mbl_mw_datasignal_unsubscribe(signal)
+            # libmetawear.mbl_mw_debug_disconnect(s.device.board)
+        return
+
+    def handle_metawear_macadresses(self, result):
+        if (result.has_service_uuid(MetaWear.GATT_SERVICE) and result.mac not in self.seen_metawears):
+            self.metawear_listbox.insert(Tk.END, result.mac)
+            self.seen_metawears.append(result.mac)
+    
+    def initialize_metawear(self):
+        BleScanner.set_handler(self.handle_metawear_macadresses)
+        BleScanner.start()
+    
+    def connect_to_metawears_click(self):
+        selected = self.metawear_listbox.curselection()
+        if (len(selected) == 2):
+            self.configure_metawears(selected)
+        else:
+            tkMessageBox.showinfo("Debe seleccionar al menos 1 metawear")
+
+    def set_led_color(self, mw_mac, led_color):
+        device = MetaWear(mw_mac)
+        try:
+            device.connect()
+            self.mw_devices.append(device)
+            print "Connected to %s" % mw_mac
+        except:
+            print "Error connecting to %s" % mw_mac
+            return
+
+        pattern = LedPattern(repeat_count= Const.LED_REPEAT_INDEFINITELY)
+        libmetawear.mbl_mw_led_load_preset_pattern(byref(pattern), LedPreset.SOLID)
+        libmetawear.mbl_mw_led_write_pattern(device.board, byref(pattern), led_color)
+        libmetawear.mbl_mw_led_play(device.board)
+
+    def configure_metawears(self, selected):
+        mw_mac1 = self.metawear_listbox.get(selected[0])
+        self.set_led_color(mw_mac1, LedColor.GREEN)
+        mw_mac2 = self.metawear_listbox.get(selected[1])
+        self.set_led_color(mw_mac2, LedColor.BLUE)
+        return
 
     def refresh_setting_config(self):
         self.options_configig["Shot Interval"].set(
@@ -525,9 +621,9 @@ class GUI:
         self.dcb.set_config(configuration)
 
         if not self.check_setting_config_test():
-            self.sync_label.set("Press button on DigiCue Blue twice to sync")
+            self.sync_label.set("Presione dos veces el boton del DigiCue para sincronizar la configuracion")
         else:
-            self.sync_label.set("Configuration matches DigiCue Blue")
+            self.sync_label.set("El DigiCue se encuentra correctamente configurado")
 
     def check_setting_config_test(self):
 

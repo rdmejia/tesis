@@ -11,6 +11,7 @@ import traceback
 import time
 import threading
 import sys
+from mbientlab.metawear import libmetawear
 
 if sys.version_info[0] < 3:
     import Tkinter as Tk
@@ -28,9 +29,19 @@ class App(threading.Thread):  # thread GUI to that BGAPI can run in background
     def callback(self):
         self.root.quit()
 
+    def closed_window(self):
+        for device in self.gui.mw_devices:
+            try:
+                libmetawear.mbl_mw_led_stop_and_clear(device.board)
+                device.disconnect()
+            except:
+                print "disconnection might have failed"
+        self.root.destroy()
+
     def run(self):
         self.root = Tk.Tk()
         self.gui = gui.GUI(self.root, self.dcb)
+        self.root.protocol('WM_DELETE_WINDOW', self.closed_window)
         self.root.mainloop()
 
 
