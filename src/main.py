@@ -12,6 +12,7 @@ import time
 import threading
 import sys
 from mbientlab.metawear import libmetawear
+from login import *
 
 if sys.version_info[0] < 3:
     import Tkinter as Tk
@@ -21,8 +22,10 @@ else:
 
 class App(threading.Thread):  # thread GUI to that BGAPI can run in background
 
-    def __init__(self, dcb):
+    def __init__(self, dcb, trainer, player):
         self.dcb = dcb
+        self.trainer = trainer
+        self.player = player
         threading.Thread.__init__(self)
         self.start()
 
@@ -40,12 +43,13 @@ class App(threading.Thread):  # thread GUI to that BGAPI can run in background
 
     def run(self):
         self.root = Tk.Tk()
-        self.gui = gui.GUI(self.root, self.dcb)
+        self.gui = gui.GUI(self.root, self.dcb, self.trainer, self.player)
         self.root.protocol('WM_DELETE_WINDOW', self.closed_window)
         self.root.mainloop()
 
 
 def main():
+    login = Login()
 
     try:
         f = open("comport.cfg", "r")
@@ -60,7 +64,7 @@ def main():
         print "Opening %s" % comport
         ser = serial.Serial(comport, 115200, timeout=1, writeTimeout=1)
         dcb = digicueblue.DigicueBlue(filename="data.csv", debugprint=False)
-        app = App(dcb)
+        app = App(dcb, login.trainer, login.player)
         bg = bgapi.Bluegiga(dcb, ser, debugprint=True)
     except BaseException:
         print traceback.format_exc()

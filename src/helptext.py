@@ -1,5 +1,3 @@
-# Nathan Rhoades 10/13/2017
-
 help = """QUICK START GUIDE
 
 The DigiCue Blue is a small electronic coach that attaches to the end of your pool, snooker, or billiards cue. The device communicates with your mobile device and helps improve your game.

@@ -1,5 +1,3 @@
-# Nathan Rhoades 10/13/2017
-
 import math
 import struct
 import datetime

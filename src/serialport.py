@@ -1,5 +1,3 @@
-# Nathan Rhoades 10/13/2017
-
 import serial
 import serialport
 import time
@@ -22,11 +20,11 @@ def find_serial_port(vid, pid):
 def _test():
     port = find_serial_port("2458", "0001")  # VID = '2458', PID = '0001'
     if port is None:
-        print "BLED112 dongle not found."
+        print "Dispositivo Bluetooth compatible con DigiCue no encontrado."
     else:
         s = serial.Serial(port[0])
         s.close()
-        print "Success"
+        print "Exito"
 
 
 class SerialPortSelect:
@@ -36,7 +34,7 @@ class SerialPortSelect:
         master.resizable(0, 0)
 
         self.label_text = Tk.StringVar()
-        self.label_text.set("Select BLED112 dongle serial port:")
+        self.label_text.set("Seleccione el puerto Bluetooth para conectar el DigiCue:")
         self.label = Tk.Label(master, textvariable=self.label_text)
         self.label.pack()
         self.portref = []
@@ -46,7 +44,7 @@ class SerialPortSelect:
         print serialport.list_ports.comports()
         print self.ports
 
-        master.title("Select serial port")
+        master.title("Seleccione el puerto serial")
         self.listbox = Tk.Listbox(master, width=100)
         self.listbox.pack()
         self.button = Tk.Button(
@@ -80,11 +78,11 @@ class SerialPortSelect:
             f.write(self.portref[index])
             f.close()
             self.label_text.set(
-                "Success. %s saved as BLED112 comport." %
+                "Exito. %s guardado como puerto Bluetooth para el DigiCue." %
                 self.portref[index])
         except BaseException:
             self.label_text.set(
-                "Error writing file comport.cfg. Check permissions.")
+                "Error al guardar la configuracion. Chequee los permisos.")
 
 
 def launch_selection():

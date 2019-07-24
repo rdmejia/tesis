@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# Nathan Rhoades 10/13/2017 (modified from Jeff Rowberg's work)
-
 import platform
 import math
 import bglib

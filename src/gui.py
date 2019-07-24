@@ -44,12 +44,14 @@ class MetaWearState:
 
 class GUI:
 
-    def __init__(self, master, dcb):
+    def __init__(self, master, dcb, trainer, player):
 
         # All variables from DigiCue Blue are exposed through class variables
         # in dcb
 
         self.dcb = dcb
+        self.trainer = trainer
+        self.player = player
         self.packet_count = dcb.packet_count
         self.master = master
         master.after(500, self.timer)  # register timer
@@ -144,10 +146,10 @@ class GUI:
     def btn_start_shot_click(self):
         self.mw_states = []
         for device in self.mw_devices:
-            # try:
-            #     device.connect()
-            # except:
-            #     print 'connection to %s failed (the device might be already connected)' % device.address
+            try:
+                device.connect()
+            except:
+                print 'connection to %s failed (the device might be already connected)' % device.address
             self.mw_states.append(MetaWearState(device))
 
         for s in self.mw_states:
@@ -164,12 +166,17 @@ class GUI:
             libmetawear.mbl_mw_acc_enable_acceleration_sampling(s.device.board)
             libmetawear.mbl_mw_acc_start(s.device.board)
         
-        t = Timer(15, self.time_elapsed)
-        t.start()
+        # t = Timer(15, self.time_elapsed)
+        # t.start()
         print 'shot has started'
         return
     
     def time_elapsed(self):
+        print 'shot has finished'
+        self.stop_metawears()
+        return
+
+    def stop_metawears(self):
         print 'shot has finished'
         for s in self.mw_states:
             libmetawear.mbl_mw_acc_stop(s.device.board)
@@ -354,5 +361,6 @@ class GUI:
                 pass
             elif self.dcb.data_type == 1:  # update gui if data packet
                 self.scorebars.update()
+                self.stop_metawears()
 
         self.master.after(500, self.timer)
