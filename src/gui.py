@@ -223,10 +223,10 @@ class GUI:
     
     def connect_to_metawears_click(self):
         selected = self.metawear_listbox.curselection()
-        if (len(selected) == 2):
+        if (len(selected) == 3):
             self.configure_metawears(selected)
         else:
-            tkMessageBox.showinfo("Debe seleccionar al menos 1 metawear")
+            tkMessageBox.showinfo("Debe seleccionar 3 metawears")
 
     def set_led_color(self, mw_mac, led_color, position):
         device = MetaWear(mw_mac)
@@ -397,13 +397,13 @@ class GUI:
     def persist_shot(self):
         payload = str({
             "backstrokePause": self.dcb.score_bspause,
-            "shotInterval": None,
+            "shotInterval": self.dcb.score_shotpause,
             "jab": self.dcb.score_jab,
             "followThrough": self.dcb.score_followthru,
             "tipSteer": self.dcb.score_steering,
             "straightness": self.dcb.score_straightness,
-            "finesse": None,
-            "finish": None,
+            "finesse": self.dcb.threshold_power,
+            "finish": self.dcb.score_freeze,
             "timeStamp": datetime.datetime.now(),
             "trainer": {
                 "username": self.trainer
