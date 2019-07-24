@@ -3,6 +3,8 @@ VERSION = "1.0.0"
 import sys
 import random
 import helptext
+import datetime
+import requests
 from time import sleep
 from threading import Timer
 from mbientlab.metawear import MetaWear, libmetawear, parse_value
@@ -20,6 +22,10 @@ else:
     import tkinter as Tk
     from tkinter import ttk, tkMessageBox
 
+API_BASE_URL = "https://mocktesisasobiguaapi.azurewebsites.net/v1"
+# API_BASE_URL = "https://localhost:5001/v1"
+HEADER = {"Content-Type": "application/json", "Accept": "*"}
+
 class OptionList_Command_MacAddr:
 
     def __init__(self, parent):
@@ -32,15 +38,31 @@ class OptionList_Command_MacAddr:
         self.parent.dcb.macaddr_filter = value
 
 class MetaWearState:
-    def __init__(self, device):
+    def __init__(self, device, position, gui):
         self.device = device
         self.samples = 0
         self.callback = FnVoid_VoidP_DataP(self.data_handler)
+        self.position = position
+        self.gui = gui
         self.file = open('metawear.txt', 'w+')
     
     def data_handler(self, ctx, data):
-        self.file.write("%s -> %s\n" % (self.device.address, parse_value(data)))
-        self.samples+= 1
+        parsed = parse_value(data)
+        self.file.write("%s -> %s\n" % (self.device.address, parsed))
+        print(data)
+        print(type(data))
+        print(parsed)
+        print(type(parsed))
+        xyz_shot = {
+            "timeStamp": datetime.datetime.now(),
+            # modify to show right data
+            "x": "",
+            "y": "",
+            "z": "",
+            "xyzShotPosition": self.position
+        }
+        gui.xyz_shots.append(xyz_shot)
+        # self.samples+= 1
 
 class GUI:
 
@@ -71,6 +93,8 @@ class GUI:
         self.metawear = None
         self.macaddrs_list = []
         self.macaddr_commands = []
+        self.mw_positions = {}
+        self.xyz_shots = []
         lbl = Tk.Label(frame, text="Direccion MAC del DigiCue BLue", width=25)
         lbl.pack(side=Tk.LEFT)
         self.macaddrs = Tk.StringVar(frame)
@@ -145,12 +169,13 @@ class GUI:
 
     def btn_start_shot_click(self):
         self.mw_states = []
+        self.xyz_shots = []
         for device in self.mw_devices:
             try:
                 device.connect()
             except:
                 print 'connection to %s failed (the device might be already connected)' % device.address
-            self.mw_states.append(MetaWearState(device))
+            self.mw_states.append(MetaWearState(device, self.mw_positions[device.address], self))
 
         for s in self.mw_states:
             libmetawear.mbl_mw_settings_set_connection_parameters(s.device.board, 7.5, 7.5, 0, 6000)
@@ -203,11 +228,12 @@ class GUI:
         else:
             tkMessageBox.showinfo("Debe seleccionar al menos 1 metawear")
 
-    def set_led_color(self, mw_mac, led_color):
+    def set_led_color(self, mw_mac, led_color, position):
         device = MetaWear(mw_mac)
         try:
             device.connect()
             self.mw_devices.append(device)
+            self.mw_positions[mw_mac] = position
             print "Connected to %s" % mw_mac
         except:
             print "Error connecting to %s" % mw_mac
@@ -220,9 +246,11 @@ class GUI:
 
     def configure_metawears(self, selected):
         mw_mac1 = self.metawear_listbox.get(selected[0])
-        self.set_led_color(mw_mac1, LedColor.GREEN)
+        self.set_led_color(mw_mac1, LedColor.GREEN, "Antebrazo")
         mw_mac2 = self.metawear_listbox.get(selected[1])
-        self.set_led_color(mw_mac2, LedColor.BLUE)
+        self.set_led_color(mw_mac2, LedColor.BLUE, "Muneca")
+        mw_mac3 = self.metawear_listbox.get(selected[2])
+        self.set_led_color(mw_mac3, LedColor.RED, "Pierna")
         return
 
     def refresh_setting_config(self):
@@ -362,5 +390,38 @@ class GUI:
             elif self.dcb.data_type == 1:  # update gui if data packet
                 self.scorebars.update()
                 self.stop_metawears()
+                self.persist_shot()
 
         self.master.after(500, self.timer)
+    
+    def persist_shot(self):
+        payload = str({
+            "backstrokePause": self.dcb.score_bspause,
+            "shotInterval": None,
+            "jab": self.dcb.score_jab,
+            "followThrough": self.dcb.score_followthru,
+            "tipSteer": self.dcb.score_steering,
+            "straightness": self.dcb.score_straightness,
+            "finesse": None,
+            "finish": None,
+            "timeStamp": datetime.datetime.now(),
+            "trainer": {
+                "username": self.trainer
+            },
+            "player": {
+                "username": self.player
+            },
+            "xyzShots": self.xyz_shots
+        })
+
+        print(payload)
+
+        response = requests.post(self.api_url("/shots"), data=payload, headers=HEADER)
+
+        if response.status_code == 201:
+            print("Shot successfuly saved")
+    
+    def api_url(self, url):
+        s = "%s%s" % (API_BASE_URL, url)
+        print(s)
+        return s
