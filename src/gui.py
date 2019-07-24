@@ -406,10 +406,10 @@ class GUI:
             "finish": self.dcb.score_freeze,
             "timeStamp": datetime.datetime.now(),
             "trainer": {
-                "username": self.trainer
+                "username": self.trainer['username']
             },
             "player": {
-                "username": self.player
+                "username": self.player['username']
             },
             "xyzShots": self.xyz_shots
         })
