@@ -420,6 +420,8 @@ class GUI:
 
         if response.status_code == 201:
             print("Shot successfuly saved")
+        else:
+            print("%s - %s" % (response.status_code, response.reason))
     
     def api_url(self, url):
         s = "%s%s" % (API_BASE_URL, url)
