@@ -52,7 +52,7 @@ class Login():
         response = requests.post(self.api_url("/users/login"), data=payload, headers=HEADER)
 
         if response.status_code != 200:
-            self.lblLoginResult.config(text = response.reason)
+            self.lblLoginResult.config(text = response.json()['message'])
             return
 
         self.lblLoginResult.config(text = "")

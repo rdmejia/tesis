@@ -48,20 +48,15 @@ class MetaWearState:
     
     def data_handler(self, ctx, data):
         parsed = parse_value(data)
-        self.file.write("%s -> %s\n" % (self.device.address, parsed))
-        print(data)
-        print(type(data))
-        print(parsed)
-        print(type(parsed))
+        # self.file.write("%s -> %s\n" % (self.device.address, parsed))
         xyz_shot = {
-            "timeStamp": datetime.datetime.now(),
-            # modify to show right data
-            "x": "",
-            "y": "",
-            "z": "",
+            "timeStamp": datetime.datetime.utcnow().isoformat(),
+            "x": parsed.x,
+            "y": parsed.y,
+            "z": parsed.z,
             "xyzShotPosition": self.position
         }
-        gui.xyz_shots.append(xyz_shot)
+        self.gui.xyz_shots.append(xyz_shot)
         # self.samples+= 1
 
 class GUI:
@@ -171,10 +166,10 @@ class GUI:
         self.mw_states = []
         self.xyz_shots = []
         for device in self.mw_devices:
-            try:
-                device.connect()
-            except:
-                print 'connection to %s failed (the device might be already connected)' % device.address
+            # try:
+            #     device.connect()
+            # except:
+            #     print 'connection to %s failed (the device might be already connected)' % device.address
             self.mw_states.append(MetaWearState(device, self.mw_positions[device.address], self))
 
         for s in self.mw_states:
@@ -404,22 +399,29 @@ class GUI:
             "straightness": self.dcb.score_straightness,
             "finesse": self.dcb.threshold_power,
             "finish": self.dcb.score_freeze,
-            "timeStamp": datetime.datetime.now(),
+            "timeStamp": datetime.datetime.utcnow().isoformat(),
             "trainer": {
-                "username": self.trainer['username']
+                "username": self.trainer['username'].encode('utf-8')
             },
             "player": {
-                "username": self.player['username']
+                "username": self.player['username'].encode('utf-8')
             },
             "xyzShots": self.xyz_shots
         })
-
-        print(payload)
+        
+        file = open('hola.json', 'w+')
+        file.write(payload)
 
         response = requests.post(self.api_url("/shots"), data=payload, headers=HEADER)
 
         if response.status_code == 201:
             print("Shot successfuly saved")
+        else:
+            print(response.status_code)
+            print(response.reason)
+            errorFile = open('error.txt', 'w+')
+            errorFile.write(str(response))
+            errorFile.write(str(response.text))
     
     def api_url(self, url):
         s = "%s%s" % (API_BASE_URL, url)
