@@ -230,14 +230,22 @@ class GUI:
 
     def set_led_color(self, mw_mac, led_color, position):
         device = MetaWear(mw_mac)
-        try:
-            device.connect()
-            self.mw_devices.append(device)
-            self.mw_positions[mw_mac] = position
-            print "Connected to %s" % mw_mac
-        except:
-            print "Error connecting to %s" % mw_mac
-            return
+        i = 0
+        connected = False
+        while i < 3 and not connected:
+            try:
+                device.connect()
+                connected = True
+                self.mw_devices.append(device)
+                self.mw_positions[mw_mac] = position
+                print "Connected to %s" % mw_mac
+            except:
+                i = i + 1
+                print "Connection to %s failed. Retrying..." % mw_mac
+            
+            if not connected:
+                print "Error connecting to %s" % mw_mac
+                return
 
         pattern = LedPattern(repeat_count= Const.LED_REPEAT_INDEFINITELY)
         libmetawear.mbl_mw_led_load_preset_pattern(byref(pattern), LedPreset.SOLID)
