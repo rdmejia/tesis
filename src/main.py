@@ -42,14 +42,22 @@ class App(threading.Thread):  # thread GUI to that BGAPI can run in background
         self.root.destroy()
 
     def run(self):
-        self.root = Tk.Tk()
-        self.gui = gui.GUI(self.root, self.dcb, self.trainer, self.player)
-        self.root.protocol('WM_DELETE_WINDOW', self.closed_window)
-        self.root.mainloop()
+        try:
+            self.root = Tk.Tk()
+            self.gui = gui.GUI(self.root, self.dcb, self.trainer, self.player)
+            self.root.protocol('WM_DELETE_WINDOW', self.closed_window)
+            self.root.mainloop()
+        except BaseException:
+            pass
+        finally:
+            self.closed_window()
 
 
 def main():
     login = Login()
+
+    if login.trainer == None or login.player == None:
+        exit()
 
     try:
         f = open("comport.cfg", "r")
