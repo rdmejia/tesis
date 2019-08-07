@@ -5,3 +5,4 @@ comport.cfg
 data.csv
 hola.json
 .metawear/
+*.bak
