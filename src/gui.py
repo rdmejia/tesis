@@ -158,7 +158,7 @@ class GUI:
 
         # Shots tab
         self.scorebars = ScoreBars(self.tab1, dcb)
-        self.btn_start_shot = Tk.Button(self.tab1, text = 'Iniciar tiro', bg='green')
+        self.btn_start_shot = Tk.Button(self.tab1, text = 'Iniciar tiro', bg='green', width=75, height=3)
         self.btn_start_shot.config(command = self.btn_start_shot_click)
         self.btn_start_shot.pack(side = Tk.BOTTOM)
 

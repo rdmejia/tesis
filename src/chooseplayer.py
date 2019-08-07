@@ -38,7 +38,7 @@ class ChoosePlayer():
 
     def getListOfPlayers(self):
         payload = {"usertype": "players"}
-        response = requests.get(self.api_url("/users"), params=payload)
+        response = requests.get(self.api_url("/users") + "?usertype=player", params=payload)
         if response.status_code == 200:
             return response.json()
         return None
