@@ -1,0 +1,7 @@
+/venv
+*.pyc
+comport.cfg
+.vscode/
+data.csv
+hola.json
+.metawear/
