@@ -408,6 +408,8 @@ class GUI:
             "finesse": self.dcb.threshold_power,
             "finish": self.dcb.score_freeze,
             "timeStamp": datetime.datetime.utcnow().isoformat(),
+            "impactX": self.dcb.impactx,
+            "impactY": self.dcb.impacty,
             "trainer": {
                 "username": self.trainer['username'].encode('utf-8')
             },
