@@ -410,6 +410,7 @@ class GUI:
             "timeStamp": datetime.datetime.utcnow().isoformat(),
             "impactX": self.dcb.impactx,
             "impactY": self.dcb.impacty,
+            "tipSteerDir": self.dcb.score_steering_direction,
             "trainer": {
                 "username": self.trainer['username'].encode('utf-8')
             },
@@ -427,7 +428,12 @@ class GUI:
         if response.status_code == 201:
             print("Shot successfuly saved")
         else:
-            print("%s - %s" % (response.status_code, response.reason))
+            print("%s - %s. Retrying..." % (response.status_code, response.reason))
+            i = 0
+            while i < 2 and response.status_code != 201:
+                i = i + 1
+                response = requests.post(self.api_url("/shots"), data=payload, headers=HEADER)
+                print("[Retry attempt to save shot] %s - %s" % (response.status_code, response.reason))
     
     def api_url(self, url):
         s = "%s%s" % (API_BASE_URL, url)
