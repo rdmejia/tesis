@@ -189,6 +189,7 @@ class GUI:
         # t = Timer(15, self.time_elapsed)
         # t.start()
         print 'shot has started'
+        self.btn_start_shot.config(state="disabled", bg="red")
         return
     
     def time_elapsed(self):
@@ -424,7 +425,7 @@ class GUI:
         file.write(payload)
 
         response = requests.post(self.api_url("/shots"), data=payload, headers=HEADER)
-
+        self.btn_start_shot.config(state="normal", bg="green")
         if response.status_code == 201:
             print("Shot successfuly saved")
         else:
