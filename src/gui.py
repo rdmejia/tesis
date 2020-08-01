@@ -22,7 +22,8 @@ else:
     import tkinter as Tk
     from tkinter import ttk, tkMessageBox
 
-API_BASE_URL = "https://asobiguatesisapi.azurewebsites.net/v1"
+API_BASE_URL = "http://143.208.180.250:21887/asobigua_api/v1"
+# API_BASE_URL = "https://asobiguatesisapi.azurewebsites.net/v1"
 # API_BASE_URL = "https://localhost:5001/v1"
 HEADER = {"Content-Type": "application/json", "Accept": "*"}
 
@@ -210,6 +211,7 @@ class GUI:
 
     def handle_metawear_macadresses(self, result):
         if (result.has_service_uuid(MetaWear.GATT_SERVICE) and result.mac not in self.seen_metawears):
+            print("Found mw: %s" % result.mac)
             self.metawear_listbox.insert(Tk.END, result.mac)
             self.seen_metawears.append(result.mac)
     
@@ -219,7 +221,7 @@ class GUI:
     
     def connect_to_metawears_click(self):
         selected = self.metawear_listbox.curselection()
-        if (len(selected) == 3):
+        if (len(selected) > 0):
             self.configure_metawears(selected)
         else:
             tkMessageBox.showinfo("Debe seleccionar 3 metawears")
@@ -251,10 +253,12 @@ class GUI:
     def configure_metawears(self, selected):
         mw_mac1 = self.metawear_listbox.get(selected[0])
         self.set_led_color(mw_mac1, LedColor.GREEN, "Antebrazo")
-        mw_mac2 = self.metawear_listbox.get(selected[1])
-        self.set_led_color(mw_mac2, LedColor.BLUE, "Muneca")
-        mw_mac3 = self.metawear_listbox.get(selected[2])
-        self.set_led_color(mw_mac3, LedColor.RED, "Pierna")
+        if len(selected) > 1:
+            mw_mac2 = self.metawear_listbox.get(selected[1])
+            self.set_led_color(mw_mac2, LedColor.BLUE, "Muneca")
+        if len(selected) > 2:
+            mw_mac3 = self.metawear_listbox.get(selected[2])
+            self.set_led_color(mw_mac3, LedColor.RED, "Pierna")
         return
 
     def refresh_setting_config(self):

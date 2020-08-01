@@ -9,7 +9,8 @@ else:
     import tkinter as Tk
     from tkinter import ttk, tkMessageBox
 
-API_BASE_URL = "https://asobiguatesisapi.azurewebsites.net/v1"
+API_BASE_URL = "http://143.208.180.250:21887/asobigua_api/v1"
+# API_BASE_URL = "https://asobiguatesisapi.azurewebsites.net/v1"
 # API_BASE_URL = "https://localhost:5001/v1"
 HEADER = {"Content-Type": "application/json", "Accept": "*"}
 
