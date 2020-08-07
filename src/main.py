@@ -54,7 +54,9 @@ class App(threading.Thread):  # thread GUI to that BGAPI can run in background
 
 
 def main():
+    print "Attempting to login..."
     login = Login()
+    print "Logged in?"
 
     if login.trainer == None or login.player == None:
         exit()
